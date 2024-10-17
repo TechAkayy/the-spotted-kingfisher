@@ -1,8 +1,8 @@
 // Google Apps Script to handle form submissions and save to a Google Sheet
 const SHEET_NAME = 'Newsletter Subscribers' // Your sheet name
-const MAILCHIMP_API_KEY = '25871c48ebc0613aedf49acb600113a1-us13' // Your Mailchimp API Key
+const MAILCHIMP_API_KEY = 'MAILCHIMP_API_KEY' // Your Mailchimp API Key
 const MAILCHIMP_DATA_CENTER = MAILCHIMP_API_KEY.split('-')[1] // Extract the data center from the API key
-const MAILCHIMP_LIST_ID = '35993531a8' // Your Mailchimp Audience List ID
+const MAILCHIMP_LIST_ID = 'MAILCHIMP_LIST_ID' // Your Mailchimp Audience List ID
 
 // Function to save the submitted email to the Google Sheet
 async function doPost(e) {
