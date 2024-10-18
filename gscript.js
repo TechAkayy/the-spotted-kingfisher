@@ -23,8 +23,10 @@ function doPost(e) {
     sheet.appendRow([email, new Date()]); // Add the email to the sheet
 
     try {
-      // TODO: Ran as a side effect, move as a separate script
-      addToMailchimp(email)
+      if (MAILCHIMP_API_KEY !== 'MAILCHIMP_API_KEY') {
+        // TODO: Ran as a side effect, move as a separate script
+        addToMailchimp(email)
+      }
     } catch (err) {
       console.error(err)
     }
