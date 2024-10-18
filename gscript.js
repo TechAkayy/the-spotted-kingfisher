@@ -4,49 +4,38 @@ const MAILCHIMP_API_KEY = 'MAILCHIMP_API_KEY' // Your Mailchimp API Key
 const MAILCHIMP_DATA_CENTER = MAILCHIMP_API_KEY.split('-')[1] // Extract the data center from the API key
 const MAILCHIMP_LIST_ID = 'MAILCHIMP_LIST_ID' // Your Mailchimp Audience List ID
 
+// Handles GET (preflight requests)
+function doGet(e) {
+  return buildResponse(200, 'Preflight OK');
+}
+
+// Handles POST requests
 // Function to save the submitted email to the Google Sheet
 async function doPost(e) {
   try {
-    // const data = JSON.parse(e.postData.contents);  // Parse the POST request body
+    const data = JSON.parse(e.postData.contents);  // Parse the POST request body
     const email = data.email // Extract the email field
 
     if (!email || !validateEmail(email)) {
-      return ContentService.createTextOutput(
-        JSON.stringify({
-          status: 'error',
-          message: 'Invalid email address.',
-        })
-      ).setMimeType(ContentService.MimeType.JSON)
+      return buildResponse(400, 'Invalid email address.')
     }
 
     const sheet =
       SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME)
     sheet.appendRow([email, new Date()]) // Add the email to the sheet
 
+    //TODO: Comment this line out to post the email to mailchimp
+    return buildResponse(200, 'Email saved successfully!')
+
     const mailchimpResponse = await addToMailchimp(email)
 
     if (mailchimpResponse.getResponseCode() !== 200) {
-      return ContentService.createTextOutput(
-        JSON.stringify({
-          status: 'error',
-          message: 'Failed to add email to Mailchimp.',
-        })
-      ).setMimeType(ContentService.MimeType.JSON)
+      return buildResponse(500, 'Failed to add email to Mailchimp.')
     }
-    return ContentService.createTextOutput(
-      JSON.stringify({
-        status: 'success',
-        message: 'Email saved successfully!',
-      })
-    ).setMimeType(ContentService.MimeType.JSON)
+    return buildResponse(200, 'Email saved successfully at Mailchimp!')
   } catch (error) {
     console.log(error)
-    return ContentService.createTextOutput(
-      JSON.stringify({
-        status: 'error',
-        message: 'An error occurred.',
-      })
-    ).setMimeType(ContentService.MimeType.JSON)
+    return buildResponse(500, 'An error occurred.')
   }
 }
 
@@ -77,4 +66,20 @@ async function addToMailchimp(email) {
 function validateEmail(email) {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailPattern.test(email)
+}
+
+function buildResponse(statusCode, message) {
+  return ContentService.createTextOutput(
+    JSON.stringify({ status: statusCode === 200 ? 'success' : 'error', message })
+  ).setMimeType(ContentService.MimeType.JSON)
+}
+
+async function testDoPost() {
+  const mockEvent = {
+    postData: {
+      contents: JSON.stringify({ email: 'mybestieforlife984@gmail.com' }),
+    },
+  };
+  const response = await doPost(mockEvent);
+  Logger.log(response.getContent()); // Check the response in the logs
 }
