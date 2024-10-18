@@ -1,4 +1,5 @@
 _pgbackup
 _pginfo
+_pgexport
 node_modules
 dist
