@@ -407,8 +407,7 @@
                     body: JSON.stringify({email: this.email}),
                   }
                 )
-                console.log(response)
-                if (response) {
+                if (response.ok) {
                   this.msg = this.successMsg
                 } else {
                   this.msg = this.failureMsg

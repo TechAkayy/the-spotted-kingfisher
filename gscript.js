@@ -10,44 +10,37 @@ function doGet(e) {
 }
 
 // Handles POST requests
-// Function to save the submitted email to the Google Sheet
-async function doPost(e) {
+function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);  // Parse the POST request body
-    const email = data.email // Extract the email field
+    const data = JSON.parse(e.postData.contents); // Parse the POST request body
+    const email = data.email; // Extract the email field
 
     if (!email || !validateEmail(email)) {
-      return buildResponse(400, 'Invalid email address.')
+      return buildResponse(400, 'Invalid email address.');
     }
 
-    const sheet =
-      SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME)
-    sheet.appendRow([email, new Date()]) // Add the email to the sheet
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    sheet.appendRow([email, new Date()]); // Add the email to the sheet
 
-    //TODO: Comment this line out to post the email to mailchimp
-    return buildResponse(200, 'Email saved successfully!')
-
-    const mailchimpResponse = await addToMailchimp(email)
-
-    if (mailchimpResponse.getResponseCode() !== 200) {
-      return buildResponse(500, 'Failed to add email to Mailchimp.')
+    try {
+      // TODO: Ran as a side effect, move as a separate script
+      addToMailchimp(email)
+    } catch (err) {
+      console.error(err)
     }
-    return buildResponse(200, 'Email saved successfully at Mailchimp!')
+    // TODO: Comment this line to enable Mailchimp API call
+    return buildResponse(200, 'Email saved successfully!');
   } catch (error) {
-    console.log(error)
-    return buildResponse(500, 'An error occurred.')
+    console.error('Processing Error:', error);
+    return buildResponse(500, 'An error occurred.');
   }
 }
 
-function encodeBase64(input) {
-  return Utilities.base64Encode(Utilities.newBlob(input).getBytes())
-}
-
 // Helper function to add email to Mailchimp list
-async function addToMailchimp(email) {
-  const token = encodeBase64('anystring:' + MAILCHIMP_API_KEY)
+function addToMailchimp(email) {
+  const token = encodeBase64('anystring:' + MAILCHIMP_API_KEY);
+  const url = `https://${MAILCHIMP_DATA_CENTER}.api.mailchimp.com/3.0/lists/${MAILCHIMP_LIST_ID}/members`;
 
-  const url = `https://${MAILCHIMP_DATA_CENTER}.api.mailchimp.com/3.0/lists/${MAILCHIMP_LIST_ID}/members`
   const options = {
     method: 'POST',
     contentType: 'application/json',
@@ -56,30 +49,52 @@ async function addToMailchimp(email) {
     },
     payload: JSON.stringify({
       email_address: email,
-      status: 'subscribed', // Change to 'pending' if you want double opt-in
+      status: 'subscribed', // Change to 'pending' for double opt-in
     }),
+  };
+
+  try {
+    const mailchimpResponse = UrlFetchApp.fetch(url, options);
+    // Log the response in Google sheet if it failed
+    if (mailchimpResponse.getResponseCode() !== 200) {
+      console.log('Failed to add email to Mailchimp.')
+      // return buildResponse(500, 'Failed to add email to Mailchimp.');
+    }
+    console.log('Email saved successfully at Mailchimp!')
+    // return buildResponse(200, 'Email saved successfully at Mailchimp!');
+  } catch (error) {
+    console.error('Mailchimp Error:', error);
+    // return buildResponse(500, 'An error occurred while adding to Mailchimp.');
   }
-  return UrlFetchApp.fetch(url, options)
 }
 
-// Email validation function
+// Encodes input to Base64
+function encodeBase64(input) {
+  return Utilities.base64Encode(Utilities.newBlob(input).getBytes());
+}
+
+// Validates email address format
 function validateEmail(email) {
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailPattern.test(email)
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(email);
 }
 
+// Builds a JSON response
 function buildResponse(statusCode, message) {
   return ContentService.createTextOutput(
     JSON.stringify({ status: statusCode === 200 ? 'success' : 'error', message })
-  ).setMimeType(ContentService.MimeType.JSON)
+  ).setMimeType(ContentService.MimeType.JSON);
 }
 
-async function testDoPost() {
+// Test function to simulate a POST request
+function testDoPost() {
   const mockEvent = {
     postData: {
       contents: JSON.stringify({ email: 'mybestieforlife984@gmail.com' }),
     },
   };
-  const response = await doPost(mockEvent);
-  Logger.log(response.getContent()); // Check the response in the logs
+
+  doPost(mockEvent)
+    .then((response) => Logger.log(response.getContent()))
+    .catch((error) => Logger.log('Test failed:', error));
 }
