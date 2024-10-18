@@ -231,15 +231,14 @@
                   'https://script.google.com/macros/s/AKfycbw7POCP5cImcbXxElKImGVzr0nIFGmUpMpX60XtEjyCwUCnbJ-C_o_gf7pn8qIvX4_qjw/exec',
                   {
                     method: 'POST',
-                    mode: 'no-cors',
+                    // https://stackoverflow.com/a/56502262
                     headers: {
-                      'Content-Type': 'application/json',
+                      'Content-Type': 'text/plain;charset=utf-8',
                     },
                     body: JSON.stringify({email: this.email}),
                   }
                 )
-                console.log(response)
-                if (response) {
+                if (response.ok) {
                   this.msg = this.successMsg
                 } else {
                   this.msg = this.failureMsg
